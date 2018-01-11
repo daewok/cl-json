@@ -156,6 +156,15 @@ the given SLOTS and SUPERCLASSES."
                unless (some (extant-slot-p slot) superclasses)
                collect (slot-init slot))))))
 
+(defun find-slot-name (class slot-name)
+  "Find a slot in CLASS with a name that is STRING-EQUAL to SLOT-NAME. Return
+the name if it exists, otherwise NIL."
+  (let ((slot-def (find slot-name (class-slots class)
+                        :key #'slot-definition-name
+                        :test #'string-equal)))
+    (when slot-def
+      (slot-definition-name slot-def))))
+
 (defun make-and-populate-instance (class bindings)
   "Make an instance of the given CLASS, and set its slots to given
 values.  BINDINGS must be a list of pairs whose CARs are slot names
@@ -169,8 +178,9 @@ defined in the CLASS, the corresponding value is discarded."
                   (null (slot-value object slot-name)))
             do (slot-makunbound object slot-name)))
     (loop for (slot . value) in bindings
-       if (slot-exists-p object slot)
-         do (setf (slot-value object slot) value))
+       for true-slot-name = (find-slot-name class slot)
+       if true-slot-name
+         do (setf (slot-value object true-slot-name) value))
     object))
 
 (defgeneric make-object (bindings class &optional superclasses)
